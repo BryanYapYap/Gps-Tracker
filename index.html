@@ -1,67 +1,68 @@
+<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>ESP32 GPS Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    html, body, #map {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
-    #status {
-      position: absolute;
-      z-index: 1;
-      top: 10px;
-      left: 10px;
-      background: white;
-      padding: 5px 10px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div id="status">Loading latest GPS location...</div>
-  <div id="map"></div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const BIN_ID = "683d98928a456b7966a87b3d";
-    const API_KEY = "$2a$10$pXDgVY8ppAPPg1MRP5lCM.kO.UD505/0F5IEwNmoRuqhrRiLQbxDm";
-    const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
-
-    const map = L.map('map').setView([3.8, 103.3], 13); // default to Kuantan
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    const marker = L.marker([3.8, 103.3]).addTo(map);
-
-    async function updateLocation() {
-      try {
-        const response = await fetch(JSONBIN_URL, {
-          headers: {
-            'X-Master-Key': API_KEY
-          }
-        });
-        if (!response.ok) throw new Error("Failed to fetch location");
-        const data = await response.json();
-        const { lat, lng } = data.record;
-        marker.setLatLng([lat, lng]);
-        map.setView([lat, lng], 16);
-        document.getElementById("status").innerText = `📍 Location: ${lat}, ${lng}`;
-      } catch (err) {
-        console.error(err);
-        document.getElementById("status").innerText = "❌ Failed to load GPS location.";
+  <head>
+    <meta charset="UTF-8">
+    <title>ESP32 GPS Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      html, body, #map {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
       }
-    }
+      #status {
+        position: absolute;
+        z-index: 1;
+        top: 10px;
+        left: 10px;
+        background: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">📍 Loading latest GPS location...</div>
+    <div id="map"></div>
 
-    // 自动每 5 秒刷新一次
-    updateLocation();
-    setInterval(updateLocation, 5000);
-  </script>
-</body>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const BIN_ID = "683d98928a456b7966a87b3d";
+      const API_KEY = "$2a$10$pXDgVY8ppAPPg1MRP5lCM.kO.UD505/0F5IEwNmoRuqhrRiLQbxDm";
+      const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+
+      const map = L.map('map').setView([3.8, 103.3], 13); // 初始位置（关丹）
+
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles © Esri'
+      }).addTo(map);
+
+      const marker = L.marker([3.8, 103.3]).addTo(map).bindPopup("📍 Last known location").openPopup();
+
+      async function updateLocation() {
+        try {
+          const response = await fetch(JSONBIN_URL, {
+            headers: { 'X-Master-Key': API_KEY }
+          });
+          const data = await response.json();
+          const { lat, lng } = data.record;
+
+          marker.setLatLng([lat, lng]);
+          map.setView([lat, lng], 16);
+          marker.bindPopup(`📍 Location: ${lat}, ${lng}`).openPopup();
+          document.getElementById("status").innerText = `📍 Location: ${lat}, ${lng}`;
+        } catch (err) {
+          document.getElementById("status").innerText = "❌ Failed to load GPS location.";
+          console.error(err);
+        }
+      }
+
+      updateLocation(); // 启动时更新一次
+      setInterval(updateLocation, 5000); // 每 5 秒更新一次
+    </script>
+  </body>
 </html>
