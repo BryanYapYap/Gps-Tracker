@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 GPS Tracker</title>
+  <link
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    .footer {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="footer">Real-time Location via JSONBin</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script>
+    const BIN_ID = "683d67198a456b7966a8650b";
+    const API_KEY = "$2a$10$0r0S2fMgDW8fa6PNd7jrS.YKWgpqCxGHAPwAsQabeDCyJTUb59bNK";
+
+    let map = L.map('map').setView([3.139, 101.6869], 13); // Kuala Lumpur as default
+    let marker = L.marker([3.139, 101.6869]).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: 'Map data © OpenStreetMap contributors'
+    }).addTo(map);
+
+    async function fetchLocation() {
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+          headers: {
+            'X-Master-Key': API_KEY,
+          },
+        });
+        const json = await res.json();
+        const data = json.record;
+        if (data.lat && data.lng) {
+          const lat = parseFloat(data.lat);
+          const lng = parseFloat(data.lng);
+          marker.setLatLng([lat, lng]);
+          map.setView([lat, lng], 16);
+        }
+      } catch (err) {
+        console.error('Error fetching GPS data:', err);
+      }
+    }
+
+    setInterval(fetchLocation, 5000); // 每5秒更新
+    fetchLocation();
+  </script>
+</body>
+</html>
